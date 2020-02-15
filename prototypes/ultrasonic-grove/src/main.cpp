@@ -1,4 +1,5 @@
-#include "Ultrasonic.h"
+#include <Arduino.h>
+#include <Ultrasonic.h>
 
 Ultrasonic ultrasonic(1);
 void setup()
