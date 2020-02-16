@@ -2,6 +2,7 @@ This basic example tests out reading from the ultrasonic sensor
 
 Base kit is: https://store.arduino.cc/usa/ioterrific-bundle
 ultrasonic sensor: http://wiki.seeedstudio.com/Grove-Ultrasonic_Ranger/
+Github code for sensor: https://github.com/Seeed-Studio/Grove_Ultrasonic_Ranger
 Details about the MKR Connector : https://www.arduino.cc/en/Guide/MKRConnectorCarrier
 
 Key notes:

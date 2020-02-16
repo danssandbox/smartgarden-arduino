@@ -1,0 +1,50 @@
+
+There could be multiple instancs of each of these:
+sensor type = brand/model - it will be used to indicate what to read?
+EC
+pH
+air temp, humidity
+water temp
+water level
+future: total disolved oxygen, light levels (multiple)
+
+I could send a single message for EVERY reading.  That has hub info, sensor info, reading
+This would create a consistant message structure that I could load to one table and query easily
+
+Template:
+{"sensor_type": {"reading": {"id" : "1234a", "name": "Friendly Name", "reading": 99990, "units": "mm"} } }
+
+Specific Example:
+{"id" : "gusr[pin]", "grove-ultrasonic-ranger": {"readings": [{ "name": "Tank water level", "reading": 99990, "units": "inches"}] } }
+{"id" : "xxx", "grove-tds": {"readings": [{"name": "Water TDS", "reading": 99990, "units": "???"}] } }
+{"id" : "xxx", "grove-temp-humidity": {"readings": [{ "name": "Air Temperatur", "reading": 70, "units": "F"}, {"name": "Air Humidity", "reading": 35, "units": "percent"}] } }
+
+
+{
+  "message": "sensor",
+  "hub-id": "mac-addr",
+  "hub-name": "Maggie",
+  "utc-timestamp": "YYYY-MM-DD HH:MM:SS:ms",
+  "sensor-id": "xxx[pin]",
+  "sensor-name": "Tank water level",
+  "reading": 25,
+  "units": "inßches"
+}
+
+{
+  "hub-id": "mac_addr",
+  "name": "Basement Garden Hub",
+  "utc-timestamp": "YYYY-MM-DD HH:MM:SS:ms",
+  "sensors":
+  [
+    {"id" : "gusr[pin]", "grove-ultrasonic-ranger":
+      {"readings": [{ "name": "Tank water level", "reading": 99990, "units": "inches"}] }
+    },
+    {"id" : "xxx", "grove-tds":
+      {"readings": [{"name": "Water TDS", "reading": 99990, "units": "???"}] }
+    },
+    {"id" : "xxx", "grove-temp-humidity":
+      {"readings": [{ "name": "Air Temperatur", "reading": 70, "units": "F"}, {"name": "Air Humidity", "reading": 35, "units": "percent"}] }
+    }
+  ]
+}
