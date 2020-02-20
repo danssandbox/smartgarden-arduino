@@ -56,9 +56,10 @@ void printWifiStatus();
 unsigned long getTime();
 
 // MAX6675 Thermocouple settings and pin locations
-int ktcSO = 8;
-int ktcCS = 9;
-int ktcCLK = 10;
+// GND to Ground, VCC to 5V output
+int ktcSO = 8; // SO to digital pin 9
+int ktcCS = 9;  // CS to digital pin 9
+int ktcCLK = 10; // SCK to digital pin 10
 
 MAX6675 thermocouple(ktcCLK, ktcCS, ktcSO);
 
@@ -107,7 +108,7 @@ void setup() {
   // must have a unique client id. The MQTTClient will generate
   // a client id for you based on the millis() value if not set
   //
-  // mqttClient.setId("clientId");
+  mqttClient.setId("Maggie");
 
   // Set the message callback, this function is
   // called when the MQTTClient receives a message
