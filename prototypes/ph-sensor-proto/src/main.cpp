@@ -1,6 +1,8 @@
 #include <Arduino.h>
 
 /*
+    IMPORTANT: This project/code was tested on Arduino Uno
+
     e-Gizmo PH Sensor E-201-C
       This sample sketch is for pH sensor module
     an easy output voltage to compare it to pH value.
@@ -61,7 +63,7 @@ void loop(void)
   {
       PH_ARRAY[PH_ARRAY_INDEX++]=analogRead(SENSOR);
       if(PH_ARRAY_INDEX==ARRAY_LENGTH)PH_ARRAY_INDEX=0;
-      VOLTAGE = AVERAGE_ARRAY(PH_ARRAY, ARRAY_LENGTH)*5.0/1024;
+      VOLTAGE = AVERAGE_ARRAY(PH_ARRAY, ARRAY_LENGTH)*5.0/1024 - 1.5;
       SAMPLING_TIME=millis();
   }
 
@@ -118,3 +120,20 @@ double AVERAGE_ARRAY(int* ARR, int NUMBER){
   }//if
   return AVG;
 }
+
+
+// void setup() {
+//  // initialize serial communication at 9600 bits per second:
+//  Serial.begin(9600);
+// }
+
+// // the loop routine runs over and over showing the voltage on A0
+// void loop() {
+//  // read the input on analog pin 0:
+//  int sensorValue = analogRead(A0);
+//  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
+//  float voltage = (sensorValue) * (5.0 / 1023.0) - 1.5;
+//  // print out the value you read:
+//  Serial.println(voltage);
+//  delay(300);
+// }
