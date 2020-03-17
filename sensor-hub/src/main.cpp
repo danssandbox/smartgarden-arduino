@@ -44,6 +44,7 @@
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
+#include <utility/wifi_drv.h> //included with WiFiNINA
 
 #include "arduino_secrets.h"
 
@@ -69,6 +70,16 @@ void print2digits(int number);
 void printTime();
 void printDate();
 void getDateTime(char* datetime);
+void displaySensorData(float ec, float water_temp, float air_temp, float humidity);
+void rainbowStep(int delaytime, int counter);
+void setLEDColor(uint8_t R, uint8_t G, uint8_t B);
+
+//RGB LED pin definitions for MKR WiFi 1010
+#define GREEN_LED_pin   25
+#define BLUE_LED_pin    27
+#define RED_LED_pin     26
+
+int loopCount = 0;
 
 
 // MAX6675 Thermocouple settings and pin locations
@@ -147,7 +158,10 @@ void setup() {
   // Setup the number of rows and columns
   lcd.begin(16, 2);
   lcd.display();
+  lcd.clear();
   lcd.print("It's Maggie");
+  lcd.setCursor(0, 1);
+  lcd.print("Getting setup..");
 
   // Initize our DHT - Humidity and Temp sensor
     // Initialize device.
@@ -177,12 +191,40 @@ void setup() {
   Serial.println(F("------------------------------------"));
   // Set delay between sensor readings based on sensor details.
   delayMS = sensor.min_delay / 1000;
+
+  // Initialize onboard RGB LED 
+  //set ESP32 wifi module RGB led pins to output
+  WiFiDrv::pinMode(RED_LED_pin, OUTPUT);   //RED
+  WiFiDrv::pinMode(GREEN_LED_pin, OUTPUT); //GREEN
+  WiFiDrv::pinMode(BLUE_LED_pin, OUTPUT);  //BLUE
+
+  //turn off ESP32 wifi module RGB led
+  WiFiDrv::digitalWrite(RED_LED_pin, LOW);    //values are uint8_t
+  WiFiDrv::digitalWrite(GREEN_LED_pin, LOW);
+  WiFiDrv::digitalWrite(BLUE_LED_pin, LOW);
+
+  //set ESP32 wifi module RGB led color
+  WiFiDrv::analogWrite(RED_LED_pin, 0);     //Red off
+  WiFiDrv::analogWrite(GREEN_LED_pin, 255); //Green to 100%
+  WiFiDrv::analogWrite(BLUE_LED_pin, 0);    //Blue off
+
+  //set ESP32 wifi module RGB led color with setLEDColor(R,G,B) function. Range is 0-255 for each color.
+  setLEDColor(0,255,0); //Green to 100%
+  delay(2000);
+
+  setLEDColor(0,0,0); //All LEDs off
+  delay(500);   
 }
 
 void loop() {
-
+  rainbowStep(3, loopCount);
+  loopCount++;
 
   if (WiFi.status() != WL_CONNECTED) {
+
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Cxing to WiFi");
     connectWiFi();
     byte mac[6];
     WiFi.macAddress(mac);
@@ -190,15 +232,23 @@ void loop() {
     printMacAddress(mac);
     printWifiStatus();
     rtc.begin();
+    lcd.clear();
+    lcd.setCursor(0,1);
+    lcd.print("WiFi Connected!");
+    digitalWrite( BLUE_LED_pin, HIGH );
   }
 
   if (!mqttClient.connected()) {
     // MQTT client is disconnected, connect
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.println("Cxing to AWS IoT"); 
     connectMQTT();
     publishHeraldMessage();
     //publishMessage("I am Maggie and I am allive");
-    lcd.print("Connected!");
-
+    lcd.setCursor(0,1);
+    lcd.println("Connected!");
+     digitalWrite( RED_LED_pin, HIGH );
     // Lets publish our first set of data as well... sucks wiating
     publishSensorData();
   }
@@ -331,6 +381,10 @@ void processCommand(char* command) {
 // Sensor Readings
 void publishSensorData(){
   char sensordata_template[] = "{'message': 'sensor', 'hub_id': 'mac-addr','hub_name': '%s','utc_timestamp': '%s','sensor_id': '%s','sensor_name': '%s','reading': %s,'units': '%s'}";
+  long RangeInInches;
+  float air_temp;
+  float humidity;
+  float ec;
 
   // Get the time to print
   // printTime();
@@ -340,12 +394,11 @@ void publishSensorData(){
 
   // Ultra-sonic
   char sensor_message_us[1000];
-  long RangeInInches;
   char dist_str[5];
   RangeInInches = ultrasonic.MeasureInInches();
   sprintf(dist_str, "%d", RangeInInches);
   sprintf(sensor_message_us, sensordata_template, hub_name, dt_timestamp, "Ultrasonic[D1]", "Tank water level", dist_str, "inches");
-  Serial.println(sensor_message_us);
+  //Serial.println(sensor_message_us);
   publishMessage(sensor_message_us);
 
 
@@ -367,9 +420,10 @@ void publishSensorData(){
     //Serial.println(F("°C"));
     char sensor_message_dht[1000];
     char temp_str[6];
+    air_temp = event.temperature * 9/5 + 32;
     sprintf(temp_str, "%6.2f", event.temperature);
     sprintf(sensor_message_dht, sensordata_template, "Maggie", dt_timestamp, "DHT[D2]", "Ambient Temperature", temp_str, "°C");
-    Serial.println(sensor_message_dht);
+    //Serial.println(sensor_message_dht);
     publishMessage(sensor_message_dht);
   }
 
@@ -386,9 +440,10 @@ void publishSensorData(){
 
     char sensor_message_dht[1000];
     char hum_str[6];
+    humidity = event.relative_humidity;
     sprintf(hum_str, "%6.2f", event.relative_humidity);
     sprintf(sensor_message_dht, sensordata_template, "Maggie", dt_timestamp, "DHT[D2]", "Ambient Humidity", hum_str, "%");
-    Serial.println(sensor_message_dht);
+    //Serial.println(sensor_message_dht);
     publishMessage(sensor_message_dht);
   } 
 
@@ -407,6 +462,7 @@ void publishSensorData(){
   // Serial.print(tdsValue);
   // Serial.println(" ppm");
   ecValue = tdsValue * 2 / 1000;
+  ec = ecValue;
 
   Serial.print("EC Value = "); 
   Serial.print(ecValue);
@@ -414,8 +470,9 @@ void publishSensorData(){
 
   sprintf(ec_str, "%6.2f", ecValue);
   sprintf(sensor_message_ec, sensordata_template, "Maggie", dt_timestamp, "TDS[A0]", "Water EC", ec_str, "mS/cm");
-  Serial.println(sensor_message_ec);
+  //Serial.println(sensor_message_ec);
   publishMessage(sensor_message_ec);
+  displaySensorData(ec, 69.0, air_temp, humidity);
 }
 
 void publishHeraldMessage(){
@@ -427,7 +484,7 @@ void publishHeraldMessage(){
 
   char hearld_template[] = "{'message': 'herald','hub_id': 'mac-addr','hub_name': '%s','utc_timestamp': '%s','ip_add': 'x.x.x.x','rssi': %d}";
   sprintf(herald_message, hearld_template, hub_name, dt_timestamp, rssi);
-  Serial.println(herald_message);
+  //Serial.println(herald_message);
   publishMessage(herald_message);
 }
 
@@ -498,4 +555,73 @@ void getDateTime(char* datetime)
   Serial.print("DateTime string: ");
   Serial.print(datetime);
   Serial.println();
+}
+
+void displaySensorData(float ec, float water_temp, float air_temp, float humidity)
+{
+  // EC=3.6 WT=72
+  // AT=76  RH=85
+  char line1[16];
+  char line2[16];
+  sprintf(line1, "EC=%3.1f  WT=%2.0f", ec, water_temp);
+  sprintf(line2, "AT=%2.0f   RH=%2.0f", air_temp, humidity);
+
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(line1);
+  lcd.setCursor(0,1);
+  lcd.print(line2);
+}
+
+void setLEDColor(uint8_t R, uint8_t G, uint8_t B){
+  //R, G, and B values should not exceed 255 or be lower than 0.
+  
+  //set ESP32 wifi module RGB led color
+  WiFiDrv::analogWrite(RED_LED_pin, R); //Red
+  WiFiDrv::analogWrite(GREEN_LED_pin, G); //Green
+  WiFiDrv::analogWrite(BLUE_LED_pin, B);  //Blue
+}
+
+void rainbowStep(int delaytime, int counter){
+
+    //increase red
+    for(int i=0; i<255; i++){
+        WiFiDrv::analogWrite(RED_LED_pin, i); //Red
+        delay(delaytime);
+    }
+    
+    //if this is 2nd run or higher, then decrease blue.
+    if( counter > 0){
+        loopCount = 5; //reset global to low number so memory never blows up
+
+        //decrease blue
+        for(int i=254; i>=0; i--){
+            WiFiDrv::analogWrite(BLUE_LED_pin, i);  //Blue
+            delay(delaytime);
+        }
+    }
+    
+    //increase green
+    for(int i=0; i<255; i++){
+        WiFiDrv::analogWrite(GREEN_LED_pin, i); //Green
+        delay(delaytime);
+    }
+    
+    //decrease red
+    for(int i=254; i>=0; i--){
+        WiFiDrv::analogWrite(RED_LED_pin, i);
+        delay(delaytime);
+    }
+
+    //increase blue
+    for(int i=0; i<255; i++){
+        WiFiDrv::analogWrite(BLUE_LED_pin, i);
+        delay(delaytime);
+    }
+    
+    //decrease green
+    for(int i=254; i>=0; i--){
+        WiFiDrv::analogWrite(GREEN_LED_pin, i);
+        delay(delaytime);
+    }
 }

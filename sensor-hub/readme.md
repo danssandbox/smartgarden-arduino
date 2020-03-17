@@ -8,6 +8,7 @@ ___
 - Purchased: [Arduino](https://store.arduino.cc/usa/ioterrific-bundle)
 - Reference: [MRK Connector Carrier](https://store.arduino.cc/usa/arduino-mkr-connector-carrier)
 - Reference: [MRK Connector Carrier Docs]  
+- Reference: [Onboard RGB LED](https://github.com/ReanimationXP/MKR_WiFi_1010/blob/master/examples/RainbowRGB/RainbowRGB.ino)
 
 **Ultrasonic Sensor** Grove Ultrasonic Ranger
 - Purchased: [seeedstudio](https://www.seeedstudio.com/Grove-Ultrasonic-Distance-Sensor.html)
@@ -57,9 +58,13 @@ Video on setup of AWS IoT Core and adding a device
 
 
 ## Operating
-
-
-
+Subscribing and Publishgin messages
+Log into [AWS IoT Console](https://us-east-2.console.aws.amazon.com/iot/home?region=us-east-2#/test) for testing (acct:606422619313)
+Subscribe to: sensordata/gardenhub/maggie
+Publish to: commands/gardenhub/maggie
+Commands:
+    To get sensor data: {"command": "post"}
+    To get herald message: {"command": "herald"}
 
 ## TODO
 New accessories
